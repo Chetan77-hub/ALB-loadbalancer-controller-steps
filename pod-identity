@@ -1,0 +1,45 @@
+Create Policy :
+curl -o iam_policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
+
+aws iam create-policy \
+  --policy-name AWSLoadBalancerControllerIAMPolicy \
+  --policy-document file://iam_policy.json
+
+
+
+IAM ROLE
+
+aws iam create-role \
+  --role-name AmazonEKSLoadBalancerControllerRole \
+  --assume-role-policy-document file://<(cat <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "pods.eks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+)
+
+
+If above doesnt work go to UI and copy trust policy from other addons pod identity roles
+
+
+Create Service Account 
+kubectl create serviceaccount aws-load-balancer-controller -n <NAMESPACE>
+
+
+Create Pod identity to map SA with IAM ROLE 
+aws eks create-pod-identity-association \
+  --cluster-name <CLUSTER_NAME> \
+  --namespace <NAMESPACE> \
+  --service-account <SERVICE_ACCOUNT> \
+  --role-arn arn:aws:iam::<ACCOUNT_ID>:role/AmazonEKSLoadBalancerControllerRole
+
+
